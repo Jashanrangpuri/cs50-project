@@ -1,14 +1,38 @@
 @import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap");
 
+img {
+    -webkit-user-drag: none;
+}
+
+a {
+    text-decoration: none;
+    color: #222;
+}
+
+a:hover,
+a:focus {
+    color: #000; /* pure black on hover/focus */
+    text-decoration: underline;
+}
+
+a:active {
+    color: #444;
+    text-decoration: underline;
+}
+
 body {
     overscroll-behavior: none;
-    height: 200vh;
     font-family: "Roboto", sans-serif;
     letter-spacing: 1px;
     word-spacing: 1px;
-    background-color: #f1f1f1;
+    background-color: #e9e9e9;
+    background-image: linear-gradient(to right, #e2e8f0, #e5e7eb);
     color: #232323;
-    text-align: center;
+}
+
+body.active,
+main.active {
+    overflow: hidden;
 }
 
 header {
@@ -18,9 +42,11 @@ header {
     flex-direction: column;
     width: 100%;
     z-index: 1000;
+    height: auto;
 }
 
-nav {
+header nav {
+    position: relative;
     padding: 0.5rem 1rem;
     width: 100%;
     background-image: linear-gradient(hsl(141, 73%, 45%), hsl(141, 73%, 40%));
@@ -34,7 +60,6 @@ nav {
 .logo {
     height: 8vh;
     user-select: none;
-    -webkit-user-drag: none;
 }
 
 .menu-button {
@@ -71,16 +96,17 @@ nav {
 }
 
 .collapsed-menu {
-    display: none;
+    position: absolute;
+    top: 100%;
     width: 100%;
     background-color: #1db954;
     transform: scaleY(0);
     transform-origin: top center;
     transition: transform 0.3s ease-in-out;
+    min-height: 100vh;
 }
 
 .collapsed-menu.active {
-    display: block;
     transform: scaleY(1);
 }
 
@@ -98,6 +124,10 @@ nav {
     color: #2f2f2f;
     text-decoration: none;
     user-select: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .collapsed-menu ul a:is(:hover, :focus) {
@@ -105,31 +135,60 @@ nav {
     text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-main {
-    padding-top: 10vh;
+.main-page {
+    overflow: auto;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+    height: 100vh;
 }
 
-.login-button {
-    display: inline-block;
-    padding: 1rem 2rem;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #212121;
-    background-color: #1db954;
-    border: 1px solid #212121;
-    border-radius: 5px;
-    text-decoration: none;
+.custom-bg {
+    background: linear-gradient(to right, #e2e8f0, #e5e7eb);
 }
 
-.login-button:is(:hover, :focus) {
-    background-color: #1aa34a;
-    transform: scale(1.01);
+.custom-btn:hover {
+    background-color: #f3e8ff !important;
+    transition: background-color 0.3s ease-in-out;
 }
 
-.login-image {
-    display: inline-block;
-    padding-bottom: 0.2rem;
-    height: 2.25rem;
+.login-section {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15vh;
+    height: 100vh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    text-align: center;
+}
+
+.login-section::before {
+    content: "";
+    position: absolute;
+    width: 200vmax;
+    height: 200vmax;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background-color: #d8759f;
+    background: radial-gradient(circle, #d8759f, #8424b4);
+    border-radius: 50%;
+    z-index: -1;
+    animation: growCircle 3s ease-out forwards;
+}
+
+.login-section div {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+
+@keyframes growCircle {
+    to {
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
 h2 {
@@ -138,4 +197,175 @@ h2 {
     font-weight: 800;
     text-transform: uppercase;
     text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
+    color: black;
+    text-align: center;
+}
+
+.login-button {
+    padding: 1rem 2rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #212121;
+    background-color: #1db954;
+    border: 1px solid #212121;
+    border-radius: 5px;
+    text-decoration: none;
+    user-select: none;
+    transition: transform 0.1s ease-in-out;
+    white-space: nowrap;
+    margin-inline: auto;
+    display: block;
+}
+
+.login-button:is(:hover, :focus) {
+    background-color: #1aa34a;
+    transform: scale(1.05);
+    text-decoration: none;
+}
+
+.login-image {
+    display: inline-block;
+    padding-bottom: 0.2rem;
+    height: 2.25rem;
+}
+
+.error-message {
+    font-size: 1.2rem;
+    margin: 1em;
+}
+
+.feature-cards {
+    scroll-snap-align: start;
+    min-height: 100vh;
+}
+
+.backup-table {
+    margin-top: 5rem;
+    margin-inline: auto;
+}
+
+.pages {
+    display: flex;
+    justify-content: center;
+}
+
+.provide-playlist {
+    background-color: #29a8d6;
+    min-height: 55vh;
+    margin-top: 4rem;
+    padding: 1rem 0rem;
+}
+
+.tabs button {
+    color: #222;
+}
+
+.tabs button:is(:hover, :focus) {
+    text-decoration: none;
+    color: black;
+}
+
+.playlist-table {
+    height: 35vh;
+}
+
+.playlist-table table {
+    margin: 0;
+}
+
+.form-error {
+    color: red;
+    text-align: center;
+    padding: 0.1rem;
+}
+
+#playlist-link {
+    height: 7vh;
+}
+
+.instructions {
+    width: 75%;
+    margin: 5rem auto;
+    color: white;
+    padding: 2rem 0.5rem;
+    border-radius: 10px;
+}
+
+.instructions li {
+    font-size: 1.25rem;
+    margin: 0.5rem 0rem;
+}
+
+.playlist-header {
+    background-color: #0f4c81;
+    min-height: 35vh;
+    padding-top: 5rem;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.playlist-header h2 {
+    color: white;
+    text-transform: none;
+    font-weight: 900;
+    text-shadow: -1px -1px 0px black, -1px 1px 0px black, 1px -1px 0px black, 1px 1px 0px black;
+    flex-basis: 65%;
+}
+
+.charts {
+    width: 75%;
+    margin: 5rem auto;
+}
+
+.top-artists {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-evenly;
+    gap: 5rem;
+    margin-bottom: 10rem;
+}
+
+.card {
+    width: 18rem;
+}
+
+.card-body {
+    display: flex;
+    justify-content: space-between;
+}
+
+.card-title {
+    margin-bottom: 0;
+    align-self: center;
+}
+
+.decades {
+    height: 60vh;
+    width: 75%;
+    margin-inline: auto;
+    margin-bottom: 7rem;
+}
+
+h3 {
+    text-align: center;
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin-bottom: 3rem;
+}
+
+.grey-bar {
+    width: 90%;
+    height: 1.5rem;
+    background-color: rgb(175, 175, 175);
+    border-radius: 10px;
+}
+
+.bar {
+    background-color: #8424b4;
+    color: white;
+    text-align: center;
+    border-radius: inherit;
 }

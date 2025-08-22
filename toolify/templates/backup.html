@@ -1,0 +1,78 @@
+{% extends "layout.html" %} 
+
+{% block title %} Backup your Playlists {% endblock %} 
+
+{% block main %} 
+
+{% if "access_token" not in session %}
+    {% include "login-section.html" %}
+{% else %}
+<table class="table table-secondary table-hover text-center backup-table">
+    <thead>
+        <tr>
+            <th scope="col">Cover</th>
+            <th scope="col">Name</th>
+            <th scope="col">Length</th>
+            <th scope="col">Download as csv</th>
+        </tr>
+    </thead>
+    <tbody class="table-group-divider table-light align-middle">
+        {% if page_number == 1 %}
+        <tr>
+            <td><img src="../static/saved-songs-cover.png" alt="Playlist Cover" height="50" width="50" /></td>
+            <td>Liked songs <img src="../static/padlock.png" alt="Private Playlist icon" height="20" width="20" /></td>
+            <td>{{ saved_songs['total'] }}</td>
+            <td><a href="/download?playlist=saved" class="btn btn-success mx-auto">&#10515;</a></td>
+        </tr>
+        {% endif %} 
+        {% for playlist in response['items'] %}
+        <tr>
+            <td>
+                {% if playlist['images'] %}
+                <img src="{{ playlist['images'][0]['url'] }}" alt="Playlist Cover" height="50" width="50" />
+                {% else %}
+                <img src="../static/spotify-colors.svg" alt="Playlist Cover" height="50" width="50" />
+                {% endif %}
+            </td>
+            <td>
+                <a href="{{ playlist['external_urls']['spotify'] }}">{{ playlist['name'] }}</a>
+                {% if not playlist['public'] %}
+                <img src="../static/padlock.png" alt="Private Playlist icon" height="20" width="20" />
+                {% endif %}
+            </td>
+            <td>{{ playlist["tracks"]["total"] }}</td>
+            <td><a href="/download?playlist={{ playlist['id'] }}" class="btn btn-success mx-auto">&#10515;</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<section class="pages" aria-label="Page navigation example">
+    {% if total_pages > 1 %}
+    <ul class="pagination">
+        {% if page_number > 1 %}
+        <li class="page-item">
+            <a class="page-link" href="backup?page={{ page_number - 1 }}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+        {% endif %} 
+        {% for i in range(total_pages) %} 
+            {% if i + 1 == page_number %}
+            <li class="page-item"><a class="page-link bg-dark-subtle" href="/backup?page={{ i + 1 }}">{{ i + 1 }}</a></li>
+            {% else %}
+            <li class="page-item"><a class="page-link" href="/backup?page={{ i + 1 }}">{{ i + 1 }}</a></li>
+            {% endif %} 
+        {% endfor %} 
+        {% if total_pages > page_number %}
+        <li class="page-item">
+            <a class="page-link" href="backup?page={{ page_number + 1 }}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+    {% endif %}
+</section>
+{% endif %} 
+
+{% endblock %}

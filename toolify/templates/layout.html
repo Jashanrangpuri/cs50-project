@@ -25,8 +25,12 @@
             </nav>
             <section class="collapsed-menu">
                 <ul>
-                    <li><a href="#">HELLO</a></li>
-                    <li><a href="#">BYE</a></li>
+                    <li>
+                        <a href="#">PLAYLIST TOOLS <span>&#65310;</span></a>
+                    </li>
+                    <li>
+                        <a href="#">BYE <span>&#65310;</span></a>
+                    </li>
                 </ul>
             </section>
         </header>
@@ -38,8 +42,10 @@
                 menu.classList.toggle("active");
 
                 document.querySelector(".menu-button").classList.toggle("active");
+                document.querySelector("body").classList.toggle("active");
+                document.querySelector("main").classList.toggle("active");
             });
         </script>
-        {% block scripts %}{% endblock %}
+        {% block script %}{% endblock %}
     </body>
 </html>

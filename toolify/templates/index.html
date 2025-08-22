@@ -3,7 +3,10 @@
 {% block title %} Toolify {% endblock %}
 
 {% block main %}
-    {{ message }}
-    <h2><strong>Enhance Your Spotify Experience</strong></h2>
-    {% include "login-button.html" %}
+    <article class="main-page">
+        {% if "access_token" not in session %}
+            {% include "login-section.html" %}
+        {% endif %}
+        <section class="feature-cards"></section>
+    </article>
 {% endblock %}

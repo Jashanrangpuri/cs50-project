@@ -1,0 +1,11 @@
+<section class="login-section">
+    {% if heading %}
+    <h2><strong>{{ heading }}</strong></h2>
+    {% else %}
+    <h2><strong>Enhance Your Spotify Experience</strong></h2>
+    {% endif %}
+    <div>
+        <a href="/login" class="login-button">Login with <img class="login-image" src="../static/Spotify-logo-big.png" /></a>
+        <p class="error-message">{{ message }}</p>
+    </div>
+</section>

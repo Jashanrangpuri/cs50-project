@@ -1,0 +1,97 @@
+{% extends "layout.html" %} 
+
+{% block title %} Analyze {% endblock %} 
+
+{% block main %}
+    <section class="playlist-header">
+        {% if playlist_cover %}
+        <img src="{{ playlist_cover }}" alt="" height="128" width="128">
+        {% else %}
+        <img src="../static/saved-songs-cover.png" alt="" height="128" width="128">
+        {% endif %}
+        <h2>{{ playlist_title }}</h2>
+    </section>
+    <section class="charts">
+        <h3>TOP ARTISTS</h3>
+        <div class="top-artists">
+            {% for artist in artist_data %}
+            <div class="card">
+                <img src="{{ artist['images'][0]['url'] }}" class="card-img-top" alt="{{ artist['name'] }}" height="300" width="300">
+                <div class="card-body">
+                    <h5 class="card-title">{{ artist['name'] }}</h5>
+                    <a href="{{ artist['external_urls']['spotify'] }}" class="btn btn-success"><img src="../static/Spotify-logo-small.png" alt="View on spotify" height="20" width="20"></a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <h3>DECADES</h3>
+        <div class="decades">
+            <canvas id="decades"></canvas>
+        </div>
+        <div class="popularity">
+            <h4>AVG POPULARITY</h4>
+            <div class="grey-bar">
+                <div class="bar" style="width: {{ popularity }}%;">{{ popularity }}</div>
+            </div> 
+        </div>  
+    </section>
+{% endblock %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  const ctx = document.getElementById('decades');
+  const decades = {{ decades | tojson | safe}}
+  
+  const label = decades.map(item => item[0]);
+  const data = decades.map(item => item[1]);
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: label,
+      datasets: [{
+        label: '# of Tracks',
+        data: data,
+        backgroundColor: [
+            'rgba(255, 99, 132, 0.4)',
+            'rgba(255, 159, 64, 0.4)',
+            'rgba(75, 192, 192, 0.4)',
+            'rgba(54, 162, 235, 0.4)',
+            'rgba(153, 102, 255, 0.4)',
+        ],
+        borderColor: [
+            'rgba(255, 99, 132)',
+            'rgba(255, 159, 64)',
+            'rgba(75, 192, 192)',
+            'rgba(54, 162, 235)',
+            'rgba(153, 102, 255)',
+        ],
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      plugins: {
+          title: {
+            display: true,
+            text: 'Decades',
+            font: {
+                size: 25,
+            }
+          }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            display: false,
+          }
+        }
+      },
+      responsive: true,
+      maintainAspectRatio: false,
+    }
+  });
+</script>
+{% endblock %}

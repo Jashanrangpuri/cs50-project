@@ -1,0 +1,97 @@
+{% extends "layout.html" %} 
+
+{% block title %} Analyze {% endblock %} 
+
+{% block main %}
+<section class="provide-playlist">
+    <h2>Analyze Spotify Playlist</h2>
+    <ul class="nav nav-underline justify-content-center container-sm tabs" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" href="#url" id="url-tab" data-bs-toggle="tab" data-bs-target="#url-tab-pane" role="tab" type="button" aria-controls="url-tab-pane" aria-selected="true">Playlist URL</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" href="#login" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-tab-pane" type="button" role="tab" aria-controls="login-tab-pane" aria-selected="false">Your Playlists</button>
+        </li>
+    </ul>
+    <section class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="url-tab-pane" role="tabpanel" aria-labelledby="url-tab" tabindex="0">
+            <form action="/analyzed" method="get">
+                <div class="input-group w-75 mt-5 mb-2 mx-auto">
+                    <input type="text" id="playlist-link" class="form-control" autocomplete="off" name="playlist" placeholder="Spotify Playlist Url" />
+                    <button type="submit" id="playlist-submit" class="btn btn-primary">Analyze</button>
+                </div>
+                <p class="form-error">{{ message }}</p>
+            </form>
+        </div>
+        <div class="tab-pane fade" id="login-tab-pane" role="tabpanel" aria-labelledby="login-tab" tabindex="0">
+            {% if "access_token" not in session %}
+            <div class="d-flex m-4">
+                <a href="/login" class="login-button">Login with <img class="login-image" src="../static/Spotify-logo-big.png" /></a>
+            </div>
+            {% else %}
+            <div class="w-75 d-flex mx-auto my-2 overflow-auto playlist-table">
+                <table class="table table-sm table-dark table-striped table-bordered text-center">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Cover</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Length</th>
+                            <th scope="col">Analyze</th>
+                        </tr>
+                    </thead>
+                    <tbody class="table-group-divider align-middle">
+                        {% for playlist in playlists %}
+                        <tr>
+                            <td>
+                                {% if playlist['images'] %}
+                                <img src="{{ playlist['images'][0]['url'] }}" alt="Playlist Cover" height="50" width="50" />
+                                {% else %}
+                                <img src="../static/spotify-colors.svg" alt="Playlist Cover" height="50" width="50" />
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a class="text-white" href="{{ playlist['external_urls']['spotify'] }}">{{ playlist['name'] }}</a>
+                                {% if not playlist['public'] %}
+                                <img src="../static/padlock.png" alt="Private Playlist icon" height="20" width="20" />
+                                {% endif %}
+                            </td>
+                            <td>{{ playlist["tracks"]["total"] }}</td>
+                            <td><a href="/analyzed?playlist={{ playlist['external_urls']['spotify'] }}" class="btn btn-primary mx-auto">Analyze</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</section>
+<section class="instructions bg-secondary">
+    <h3>Readme</h3>
+    <ul>
+        <li>Enter a Spotify Playlist Url or login to analyze your playlists.</li>
+        <li>Make sure the Playlist is set to Public.</li>
+        <li>The playlist must contain atleast 10 but no more than 1000 tracks.</li>
+        <li>Due to Spotify api changes, you can no longer analyze Spotify Editorial Playlists (like Today's Top Hits).</li>
+        <li>This tool shows the top artists in the playlist, the most common decades, and the average song popularity.</li>
+    </ul>
+</section>
+{% endblock %}
+
+{% block script %}
+
+<script>
+    input = document.querySelector('#playlist-link');
+    error_message = document.querySelector('.form-error');
+    document.querySelector('#playlist-submit').addEventListener('click', function(event) {
+        if (!input.value) {
+            event.preventDefault();
+            error_message.innerHTML = 'Please Provide a Spotify Playlist link';
+        }
+    });
+    input.addEventListener('input', function() {
+        error_message.innerHTML = '';
+    });
+</script>
+
+{% endblock %}
