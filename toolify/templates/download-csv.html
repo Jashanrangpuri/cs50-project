@@ -1,0 +1,42 @@
+{% extends "layout.html" %} 
+
+{% block title %} CSV Download {% endblock %} 
+
+{% block main %}
+<section class="provide-playlist">
+    <h2>Download Spotify Playlist</h2>
+    <form action="/download-csv" method="post">
+        <div class="input-group w-75 mx-auto">
+            <input type="text" id="playlist-link" class="form-control" autocomplete="off" name="playlist" placeholder="Spotify Playlist Url" />
+            <button type="submit" id="playlist-submit" class="btn btn-primary">Download</button>
+        </div>
+        <p class="form-error">{{ message }}</p>
+    </form>
+</section>
+<section class="instructions bg-secondary">
+    <h3>Readme</h3>
+    <ul>
+        <li>Enter a Spotify Playlist Url.</li>
+        <li>Make sure the Playlist is set to Public.</li>
+        <li>Due to Spotify api changes, you can no longer download Spotify Editorial Playlists (like Today's Top Hits).</li>
+    </ul>
+</section>
+{% endblock %}
+
+{% block script %}
+
+<script>
+    input = document.querySelector('#playlist-link');
+    error_message = document.querySelector('.form-error');
+    document.querySelector('#playlist-submit').addEventListener('click', function(event) {
+        if (!input.value) {
+            event.preventDefault();
+            error_message.innerHTML = 'Please Provide a Spotify Playlist link';
+        }
+    });
+    input.addEventListener('input', function() {
+        error_message.innerHTML = '';
+    });
+</script>
+
+{% endblock %}

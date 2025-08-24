@@ -5,18 +5,19 @@ from datetime import datetime, timedelta
 from io import StringIO
 from math import ceil
 from re import search
+from werkzeug.exceptions import RequestEntityTooLarge
 from flask import Flask, flash, get_flashed_messages, redirect, render_template, request, Response, session, url_for
 from flask_session import Session
 
-from helpers import refresh_token, ms_to_min, get_server_token
+from helpers import refresh_token, ms_to_min, get_server_token, download_playlist
 import config
 
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
-
 app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_PERMANENT"] = False 
+app.config["SESSION_PERMANENT"] = False
+app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024
 Session(app)
 
 
@@ -40,6 +41,12 @@ def page_not_found():
 @app.route("/error")
 def unexpected_error():
     return render_template("error.html")
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_file_too_large(e):
+    flash("File too large. Make sure .csv file is less than 8MBs", "restore_error")
+    return redirect("/restore")
 
 
 @app.route("/login", methods=["GET"])
@@ -144,6 +151,8 @@ def download():
     if not playlist_id:
         return redirect("/not-found")
     
+    refresh_token()
+
     result = []
     
     parameters = {
@@ -177,33 +186,166 @@ def download():
         response = response.json()
         result.extend(response.get("items", []))
 
-    fieldnames = ["Name", "Added at", "Url", "Spotify ID", "Album", "Album Url", "Artist", "Duration", "ISRC", "Explicit"]
-    output = StringIO()
-    writer = csv.DictWriter(output, fieldnames=fieldnames)
-
-    writer.writeheader()
-    for song in result:
-        
-        artists = ", ".join(a.get("name") for a in song["track"].get("artists", []))
-        duration = ms_to_min(song["track"].get("duration_ms"))
-
-        writer.writerow({
-            "Name": song["track"].get("name"),
-            "Added at": song.get("added_at"),
-            "Url": song["track"]["external_urls"].get("spotify"),
-            "Spotify ID": song["track"].get("uri"),
-            "Album": song["track"]["album"].get("name"),
-            "Album Url": song["track"]["external_urls"].get("spotify"),
-            "Artist": artists,
-            "Duration": duration,
-            "ISRC": song["track"]["external_ids"].get("isrc"),
-            "Explicit": song["track"].get("explicit"),
-            })
-
-    download = Response(output.getvalue(), mimetype="text/csv")
-    download.headers.set("Content-Disposition", "attachment", filename=f"{datetime.now().strftime("%Y-%m-%d")}_spotify_playlist.csv")
-    return download
+    return download_playlist(result)
     
+
+@app.route("/restore", methods=["GET", "POST"])
+def restore():
+    if request.method == "GET":
+        message = get_flashed_messages(category_filter=["restore_error", "restore_success"])
+        message = message[0] if message else ""
+        return render_template("restore.html", heading="To restore Playlist from Backup", message=message)
+    
+    if "file" not in request.files:
+        flash("Please provide a .csv file", "restore_error")
+        return redirect("/restore")
+
+    file = request.files["file"]
+
+    if file.filename == '': 
+        flash("No selected file", "restore_error")
+        return redirect("/restore")
+    
+    if not file.filename.lower().endswith(".csv"):
+        flash("Invalid file", "restore_error")
+        return redirect("/restore")
+    
+    if file.mimetype not in ["text/csv", "application/vnd.ms-excel"]:
+        flash("Uploaded file is not a valid CSV", "restore_error")
+        return redirect("/restore")
+    
+    try:
+        stream = StringIO(file.stream.read().decode("UTF8"), newline=None)
+        csv_data = csv.DictReader(stream)
+    except Exception:
+        flash("Failed to read CSV file. Please make sure it's properly formatted.", "restore_error")
+        return redirect("/restore")
+    
+    fieldnames = csv_data.fieldnames
+    tracks = []
+    expression = r"(?:track[/:])([A-Za-z0-9]{22})"
+
+    if "url" in fieldnames:
+        for row in csv_data:
+            track_id = search(expression, row.get("url"))
+            if not track_id:
+                continue
+            tracks.append(track_id.group(1))
+    elif "spotify_id" in fieldnames:
+        for row in csv_data:
+            track_id = search(expression, row.get("spotify_id"))
+            if not track_id:
+                continue
+            tracks.append(track_id.group(1))
+    else:
+        flash("Error. Make sure csv contains 'url' or 'spotify_id' column.", "restore_error")
+        return redirect("/restore")
+    
+    MAX_ROWS = 1000
+    if len(tracks) > MAX_ROWS:
+        flash(f"CSV contains more than {MAX_ROWS} tracks. Please upload a smaller list.", "restore_error")
+        return redirect("/restore")
+    if not tracks:
+        flash(f"CSV is empty.", "restore_error")
+        return redirect("/restore") 
+    
+    refresh_token()
+
+    data = {
+        "name": f"Restored Playlist {datetime.now().strftime('%Y-%m-%d')}"
+    }
+    headers = {
+        "Authorization": f"Bearer {session["access_token"]}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.get("https://api.spotify.com/v1/me", headers=headers)
+    if response.status_code != 200:
+            session.clear()
+            return redirect("/error")
+    response = response.json()
+    user_id = response.get("id")
+
+    create_playlist = requests.post(f"https://api.spotify.com/v1/users/{user_id}/playlists", headers=headers, json=data)
+    if create_playlist.status_code not in [200, 201]:
+        session.clear()
+        return redirect("/error")
+    
+    create_playlist = create_playlist.json()
+    playlist_id = create_playlist.get("id")
+
+    for i in range(0, len(tracks), 100):
+        chunk = tracks[i:i + 100]
+        uris = [f"spotify:track:{track_id}" for track_id in chunk]
+        track_uris = {
+            "uris": uris,
+        }
+        add_to_playlist = requests.post(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", headers=headers, json=track_uris)
+        if add_to_playlist.status_code not in [200, 201]:
+            flash(f"Failed to restore playlist. Please try again.", "restore_error")
+            return redirect("/restore")
+    
+    flash(f"Playlist Restored", "restore_success")
+    return redirect("/restore")
+
+
+@app.route("/download-csv", methods=["GET", "POST"])
+def download_csv():
+    if request.method == "GET":
+        message = get_flashed_messages(category_filter="download_error")
+        message = message[0] if message else ""
+        return render_template("download-csv.html", message=message)
+    
+    link = request.form.get("playlist")
+
+    if not link:
+        flash("Please Provide a Spotify Playlist link.", "download_error")
+        return redirect("/download-csv")
+
+    expression = r"(?:playlist[/:])([A-Za-z0-9]{22})"
+
+    playlist_id = search(expression, link)
+
+    if not playlist_id:
+        flash("Invalid Spotify Playlist URL", "download_error")
+        return redirect("/download-csv")
+    
+    playlist_id = playlist_id.group(1)
+
+    get_server_token()
+
+    songs = []    
+    parameters = {
+        "market": "US",
+        "limit": 50,
+        "offset": 0
+    }
+    headers = {
+        "Authorization": f"Bearer {session['server_access_token']}"
+    }
+
+    response = requests.get(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", params=parameters, headers=headers)
+    if response.status_code in [401, 403, 404]:
+        flash("Unable to access Playlist", "download_error")
+        return redirect("/download-csv")
+    elif response.status_code != 200:
+        flash("Invalid Spotify Playlist URL", "download_error")
+        return redirect("/download-csv")
+    
+    response = response.json()
+
+    songs.extend(response.get("items", []))
+    while (response["next"]):
+        response = requests.get(response["next"], headers=headers)
+        if response.status_code != 200:
+            flash("Something went wrong. Please try again.", "download_error")
+            return redirect("/download-csv")
+    
+        response = response.json()
+        songs.extend(response.get("items", []))
+
+    return download_playlist(songs)
+
 
 @app.route("/analyze-playlist")
 def analyze_playlist():
@@ -259,7 +401,7 @@ def analyzed():
         flash("Invalid Spotify Playlist URL", "analyze_error")
         return redirect("/analyze-playlist")
     
-    playlist_id = playlist_id[1]
+    playlist_id = playlist_id.group(1)
 
     get_server_token()
 
@@ -274,7 +416,7 @@ def analyzed():
     }
 
     playlist_details = requests.get(f"https://api.spotify.com/v1/playlists/{playlist_id}", params={"market": "US"}, headers=headers)
-    if playlist_details.status_code in [401, 403]:
+    if playlist_details.status_code in [401, 403, 404]:
         flash("Unable to access Playlist", "analyze_error")
         return redirect("/analyze-playlist")
     if playlist_details.status_code != 200:
@@ -287,12 +429,12 @@ def analyzed():
 
     response = requests.get(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", params=parameters, headers=headers)
 
-    if response.status_code in [401, 403]:
+    if response.status_code in [401, 403, 404]:
         flash("Unable to access Playlist", "analyze_error")
         return redirect("/analyze-playlist")
     elif response.status_code != 200:
-            session.clear()
-            return redirect("/error")
+        flash("Invalid Spotify Playlist URL", "analyze_error")
+        return redirect("/analyze-playlist")
     
     response = response.json()
 
@@ -309,8 +451,8 @@ def analyzed():
     while (response["next"]):
         response = requests.get(response["next"], headers=headers)
         if response.status_code != 200:
-            session.clear()
-            return redirect("/error")
+            flash("Something went wrong. Please try again.", "analyze_error")
+            return redirect("/analyze-playlist")
     
         response = response.json()
         songs.extend(response.get("items", []))
@@ -323,7 +465,7 @@ def analyzed():
     for song in songs:
         year = search(year_rex, song["track"]["album"].get("release_date"))
         if year:
-            year = year[1]
+            year = year.group(1)
             decade = year[:3] + "0s"
             if decade not in decades:
                 decades[decade] = 1

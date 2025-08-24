@@ -1,6 +1,8 @@
+import csv
 import requests
 from datetime import datetime, timedelta
-from flask import session, redirect, flash
+from flask import session, redirect, flash, Response
+from io import StringIO
 
 import config
 
@@ -58,3 +60,31 @@ def get_server_token():
         session["server_access_token"] = result["access_token"]
         session["server_expiry"] = datetime.now() + timedelta(seconds=3600)
         return
+    
+def download_playlist(songs):
+    fieldnames = ["Name", "Added at", "url", "spotify_id", "Album", "Album Url", "Artist", "Duration", "ISRC", "Explicit"]
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+
+    writer.writeheader()
+    for song in songs:
+        
+        artists = ", ".join(a.get("name") for a in song["track"].get("artists", []))
+        duration = ms_to_min(song["track"].get("duration_ms"))
+
+        writer.writerow({
+            "Name": song["track"].get("name"),
+            "Added at": song.get("added_at"),
+            "url": song["track"]["external_urls"].get("spotify"),
+            "spotify_id": song["track"].get("uri"),
+            "Album": song["track"]["album"].get("name"),
+            "Album Url": song["track"]["external_urls"].get("spotify"),
+            "Artist": artists,
+            "Duration": duration,
+            "ISRC": song["track"]["external_ids"].get("isrc"),
+            "Explicit": song["track"].get("explicit"),
+            })
+
+    download = Response(output.getvalue(), mimetype="text/csv")
+    download.headers.set("Content-Disposition", "attachment", filename=f"{datetime.now().strftime('%Y-%m-%d')}_spotify_playlist.csv")
+    return download

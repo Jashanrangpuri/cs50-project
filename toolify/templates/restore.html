@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block title %} Restore Playlist {% endblock %}
+
+{% block main %}
+    {% if "access_token" not in session %}
+        {% include "login-section.html" %}
+    {% else %}
+        <section class="csv-upload">
+            <h2>Upload csv file</h2>
+            <form action="/restore" method="post" enctype="multipart/form-data">
+                <div class="input-group w-75 mt-5 mb-2 mx-auto">
+                    <input type="file" accept=".csv" id="file" class="form-control" name="file" />
+                </div>
+                <button type="submit" id="csv-submit" class="btn btn-primary btn-lg d-block mx-auto mt-5">Restore</button>
+                <p class="form-error">{{ message }}</p>
+            </form>
+        </section>
+        <section class="instructions bg-secondary">
+            <h3>Readme</h3>
+            <ul>
+                <li>To restore a playlist from a backup, please upload the CSV file containing the URLs or Spotify URIs of the songs.</li>
+                <li>The file must have .csv extension</li>
+                <li>Ensure the relevant column is named exactly “url” or “spotify_id” in all lowercase</li>
+                <li>The CSV file must not exceed 1,000 tracks in length.</li>
+            </ul>
+        </section>
+    {% endif %}
+{% endblock %}
+
+{% block script %}
+
+<script>
+    input = document.querySelector('#file');
+    error_message = document.querySelector('.form-error');
+    document.querySelector('#csv-submit').addEventListener('click', function(event) {
+        if (!input.value) {
+            event.preventDefault();
+            error_message.innerHTML = 'Please Provide a csv file';
+        }
+    });
+    input.addEventListener('input', function() {
+        error_message.innerHTML = '';
+    });
+</script>
+
+{% endblock %}

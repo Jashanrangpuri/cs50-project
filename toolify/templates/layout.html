@@ -13,34 +13,47 @@
 
     <body>
         <header>
-            <nav>
-                <a href="/">
-                    <img src="../static/logo.png" alt="Toolify Logo" class="logo" />
-                </a>
-                <button class="menu-button" type="button" aria-label="Toggle navigation menu">
-                    <div class="menu-icon"></div>
-                    <div class="menu-icon"></div>
-                    <div class="menu-icon"></div>
-                </button>
+            <nav class="navbar navbar-expand-lg fixed-top">
+                <div class="container-fluid align-items-end">
+                    <a class="navbar-brand" href="/"><img src="../static/logo.png" alt="Toolify Logo" class="logo" height="54" width="120" /></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarScroll" aria-controls="navbarScroll" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="menu-button">
+                            <div class="menu-icon"></div>
+                            <div class="menu-icon"></div>
+                            <div class="menu-icon"></div>
+                        </span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarScroll">
+                        <ul class="navbar-nav ms-auto my-2 my-lg-0 navbar-nav-scroll">
+                            <li class="nav-item">
+                                <a class="nav-link" aria-current="page" href="#">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Link</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"> PLAYLIST TOOLS </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="/backup">Backup</a></li>
+                                    <li><a class="dropdown-item" href="/restore">Restore</a></li>
+                                    <li><a class="dropdown-item" href="/analyze-playlist">Analyze Playlist</a></li>
+                                    <li><a class="dropdown-item" href="/download-csv">Download as CSV</a></li>
+                                </ul>
+                            </li>
+                            {% if "access_token" not in session %}
+                            <li>
+                                <a class="nav-link active" href="/login">LOGIN</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
             </nav>
-            <section class="collapsed-menu">
-                <ul>
-                    <li>
-                        <a href="#">PLAYLIST TOOLS <span>&#65310;</span></a>
-                    </li>
-                    <li>
-                        <a href="#">BYE <span>&#65310;</span></a>
-                    </li>
-                </ul>
-            </section>
         </header>
         <main>{% block main %}{% endblock %}</main>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
         <script>
             document.querySelector(".menu-button").addEventListener("click", function () {
-                const menu = document.querySelector(".collapsed-menu");
-                menu.classList.toggle("active");
-
                 document.querySelector(".menu-button").classList.toggle("active");
                 document.querySelector("body").classList.toggle("active");
                 document.querySelector("main").classList.toggle("active");

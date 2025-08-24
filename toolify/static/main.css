@@ -35,7 +35,97 @@ main.active {
     overflow: hidden;
 }
 
-header {
+header nav {
+    background-image: linear-gradient(hsl(141, 73%, 45%), hsl(141, 73%, 40%));
+    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.4);
+}
+
+.logo {
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.navbar-toggler,
+.navbar-toggler:focus {
+    border: none;
+    box-shadow: none;
+}
+
+.menu-button {
+    height: 3rem;
+    width: 3rem;
+    padding: 0;
+    border: 2px solid #212121;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.menu-icon {
+    height: 4px;
+    width: 80%;
+    background-color: #212121;
+    border-radius: 5px;
+    transition: transform 0.3s ease-in-out;
+}
+
+.menu-button.active .menu-icon:first-child {
+    transform: translateY(12px) rotate(45deg);
+}
+
+.menu-button.active .menu-icon:nth-child(2) {
+    background-color: transparent;
+}
+
+.menu-button.active .menu-icon:last-child {
+    transform: translateY(-12px) rotate(-45deg);
+}
+
+.nav-link {
+    color: black;
+    font-weight: 600;
+}
+
+.nav-link:is(:hover, :focus, :active) {
+    text-decoration: none;
+    color: #272727;
+}
+
+.dropdown-toggle::after {
+    transition: transform 0.2s ease-in-out;
+}
+
+.dropdown-toggle.show::after {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    background-color: #1db954;
+    padding: 0;
+    margin-top: 0.5rem !important;
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+}
+
+.dropdown-menu li:first-child .dropdown-item {
+    border-radius: 5px 5px 0 0;
+}
+
+.dropdown-menu li:last-child .dropdown-item {
+    border-radius: 0 0 5px 5px;
+}
+
+.dropdown-item:is(:hover, :focus, :active) {
+    background-color: #1aa34a;
+    color: black;
+    text-decoration: none;
+}
+
+/* header {
     position: fixed;
     top: 0;
     display: flex;
@@ -55,11 +145,6 @@ header nav {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #555;
-}
-
-.logo {
-    height: 8vh;
-    user-select: none;
 }
 
 .menu-button {
@@ -130,10 +215,10 @@ header nav {
     justify-content: space-between;
 }
 
-.collapsed-menu ul a:is(:hover, :focus) {
+.collapsed-menu ul a:is(:hover) {
     color: #000;
     text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
-}
+} */
 
 .main-page {
     overflow: auto;
@@ -368,4 +453,11 @@ h3 {
     color: white;
     text-align: center;
     border-radius: inherit;
+}
+
+.csv-upload {
+    background-color: #dda15e;
+    min-height: 50vh;
+    margin-top: 4rem;
+    padding: 1rem 0rem;
 }
