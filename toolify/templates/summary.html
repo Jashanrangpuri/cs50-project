@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+
+{% block title %} Summary {% endblock %}
+
+{% block main %}
+    {% if "access_token" not in session %}
+        {% include "login-section.html" %}
+    {% else %}
+    <section class="profile-header">
+        {% if profile_pic %}
+        <img src="{{ profile_pic[0]['url'] }}" alt="" height="128" width="128" style="border-radius: 65px;">
+        {% else %}
+        <img src="../static/Spotify-logo-small.png" alt="" height="128" width="128" style="border-radius: 65px;">
+        {% endif %}
+        <h2>{{ name }}</h2>
+    </section>
+    <section class="summary">
+        <form action="/summary" method="get">
+            <select class="form-select" style="width: 20rem; margin: 2rem auto 4rem auto;" aria-label="Time period" id="time-period" name="time-period" onchange="this.form.submit()">
+                <option {{ "selected" if time_period == "short_term" else "" }} value="short_term">Monthly</option>
+                <option {{ "selected" if time_period == "medium_term" else "" }} value="medium_term">Quarterly</option>
+                <option {{ "selected" if time_period == "long_term" else "" }} value="long_term">Yearly</option>
+            </select>
+        </form>
+        <h3>TOP ARTISTS</h3>
+        {% if artists["total"] == 0 %}
+        <h6 class="mx-auto w-50 text-center mb-5">We weren't able to find enough listening data in your Spotify account just yet. Please continue using the service and attempt again later</h6>
+        {% else %}
+        <div class="top-artists mx-5 text-center">
+        {% for artist in artists["items"] %}
+            <div class="card" style="width: 200px;">
+                {% if "images" in artist and artist["images"] %}
+                <img src="{{ artist['images'][0]['url'] }}" class="card-img-top" alt="{{ artist['name'] }}" height="200" width="200">
+                {% else %}
+                <img src="../static/spotify-colors.svg" class="card-img-top" alt="Artist image" height="200" width="200">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title" style="overflow-wrap: anywhere;">{{ artist['name'] }}</h5>
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+        {% endif %}    
+        <h3>TOP TRACKS</h3>
+        {% if tracks["total"] == 0 %}
+        <h6 class="mx-auto w-50 text-center mb-5">We weren't able to find enough listening data in your Spotify account just yet. Please continue using the service and attempt again later</h6>
+        {% else %}
+        <div class="container-sm table-responsive">
+            <table class="table table-sm table-dark table-hover text-center">
+                <thead class="align-middle">
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Artist</th>
+                        <th scope="col">Album</th>
+                        <th scope="col">Duration</th>
+                        <th scope="col">Listen on Spotify</th>
+                    </tr>
+                </thead>
+                <tbody class="table-group-divider table-light align-middle">
+                    {% for track in tracks['items'] %}
+                    <tr>
+                        <td>{{ track['name'] }}</td>
+                        <td>{{ track['artists'][0]['name'] }}</td>
+                        <td>{{ track['album']['name'] }}</td>
+                        <td>{{ ms_to_min(track['duration_ms']) }}</td>
+                        <td>
+                            <a href="{{ track['external_urls']['spotify'] }}" class="btn btn-success mx-auto">
+                                <img src="../static/Spotify-logo-small.png" alt="View on spotify" height="20" width="20">
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+{% endblock %}

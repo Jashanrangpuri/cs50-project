@@ -9,7 +9,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from flask import Flask, flash, get_flashed_messages, redirect, render_template, request, Response, session, url_for
 from flask_session import Session
 
-from helpers import refresh_token, ms_to_min, get_server_token, download_playlist
+from helpers import refresh_token, get_server_token, download_playlist, ms_to_min
 import config
 
 
@@ -77,7 +77,7 @@ def callback():
             "redirect_uri": config.REDIRECT_URI
         }
 
-        response = requests.post(config.TOKEN_URL, headers=headers, params=parameters)
+        response = requests.post(config.TOKEN_URL, headers=headers, data=parameters)
         if response.status_code != 200:
             session.clear()
             return redirect("/error")
@@ -94,10 +94,16 @@ def callback():
             return redirect("/")
 
     
-    if "error" in request.args or request.args["state"] != config.STATE:
+    if "error" in request.args or request.args.get("state") != config.STATE:
         flash("Authorization failed. Please login again.", "authorization_failed")
         return redirect("/")
     
+    return redirect("/")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
     return redirect("/")
 
 
@@ -107,7 +113,11 @@ def backup():
         return render_template("backup.html", heading="To Backup your Playlists")
     
     refresh_token()
-    page_number = request.args.get("page", 1, type=int)
+    page_number = request.args.get("page", 1)
+    try:
+        page_number = int(page_number)
+    except ValueError:
+        page_number = 1
     per_page = 50
 
     parameters = {
@@ -115,8 +125,9 @@ def backup():
         "offset": (page_number - 1) * per_page
     }
     headers = {
-        "Authorization": f"Bearer {session["access_token"]}"
+        "Authorization": f"Bearer {session['access_token']}"
     }
+
     response = requests.get(config.USER_PLAYLISTS, params=parameters, headers=headers)
     if response.status_code != 200:
         session.clear()
@@ -125,7 +136,7 @@ def backup():
     response = response.json()
 
     total_pages = ceil(response["total"] / per_page)
-    if page_number > total_pages:
+    if (page_number > total_pages and total_pages != 0) or page_number <= 0:
         return redirect("/not-found")
     
     if page_number == 1:
@@ -138,10 +149,11 @@ def backup():
                 return redirect("/error")
         
         saved_songs = saved_songs.json()
-        return render_template("backup.html", response=response, page_number=page_number, total_pages=total_pages, saved_songs=saved_songs)
+        
+        return render_template("backup.html", response=response, page_number=page_number, total_pages=total_pages, saved_songs=saved_songs, min=min, max=max)
 
 
-    return render_template("backup.html", response=response, page_number=page_number, total_pages=total_pages)
+    return render_template("backup.html", response=response, page_number=page_number, total_pages=total_pages, min=min, max=max)
     
 
 @app.route("/download")
@@ -161,7 +173,7 @@ def download():
         "offset": 0
     }
     headers = {
-        "Authorization": f"Bearer {session["access_token"]}"
+        "Authorization": f"Bearer {session['access_token']}"
     }
 
     if playlist_id == "saved":
@@ -188,6 +200,68 @@ def download():
 
     return download_playlist(result)
     
+
+@app.route("/download-csv", methods=["GET", "POST"])
+def download_csv():
+    if request.method == "GET":
+        message = get_flashed_messages(category_filter="download_error")
+        message = message[0] if message else ""
+        return render_template("download-csv.html", message=message)
+    
+    link = request.form.get("playlist")
+
+    if not link:
+        flash("Please Provide a Spotify Playlist link.", "download_error")
+        return redirect("/download-csv")
+
+    expression = r"(?:playlist[/:])([A-Za-z0-9]{22})"
+
+    playlist_id = search(expression, link)
+
+    if not playlist_id:
+        flash("Invalid Spotify Playlist URL", "download_error")
+        return redirect("/download-csv")
+    
+    playlist_id = playlist_id.group(1)
+
+    get_server_token()
+
+    songs = []    
+    parameters = {
+        "market": "US",
+        "limit": 50,
+        "offset": 0
+    }
+    headers = {
+        "Authorization": f"Bearer {session['server_access_token']}"
+    }
+
+    response = requests.get(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", params=parameters, headers=headers)
+    if response.status_code in [401, 403, 404]:
+        flash("Unable to access Playlist", "download_error")
+        return redirect("/download-csv")
+    elif response.status_code != 200:
+        flash("Invalid Spotify Playlist URL", "download_error")
+        return redirect("/download-csv")
+    
+    response = response.json()
+
+    songs.extend(response.get("items", []))
+    while (response["next"]):
+        response = requests.get(response["next"], headers=headers)
+        if response.status_code != 200:
+            flash("Something went wrong. Please try again.", "download_error")
+            return redirect("/download-csv")
+    
+        response = response.json()
+        songs.extend(response.get("items", []))
+
+    if not songs:
+        flash("Playlist is Empty", "download_error")
+        return redirect("/download-csv")
+
+    return download_playlist(songs)
+
 
 @app.route("/restore", methods=["GET", "POST"])
 def restore():
@@ -255,7 +329,7 @@ def restore():
         "name": f"Restored Playlist {datetime.now().strftime('%Y-%m-%d')}"
     }
     headers = {
-        "Authorization": f"Bearer {session["access_token"]}",
+        "Authorization": f"Bearer {session['access_token']}",
         "Content-Type": "application/json"
     }
 
@@ -289,64 +363,6 @@ def restore():
     return redirect("/restore")
 
 
-@app.route("/download-csv", methods=["GET", "POST"])
-def download_csv():
-    if request.method == "GET":
-        message = get_flashed_messages(category_filter="download_error")
-        message = message[0] if message else ""
-        return render_template("download-csv.html", message=message)
-    
-    link = request.form.get("playlist")
-
-    if not link:
-        flash("Please Provide a Spotify Playlist link.", "download_error")
-        return redirect("/download-csv")
-
-    expression = r"(?:playlist[/:])([A-Za-z0-9]{22})"
-
-    playlist_id = search(expression, link)
-
-    if not playlist_id:
-        flash("Invalid Spotify Playlist URL", "download_error")
-        return redirect("/download-csv")
-    
-    playlist_id = playlist_id.group(1)
-
-    get_server_token()
-
-    songs = []    
-    parameters = {
-        "market": "US",
-        "limit": 50,
-        "offset": 0
-    }
-    headers = {
-        "Authorization": f"Bearer {session['server_access_token']}"
-    }
-
-    response = requests.get(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", params=parameters, headers=headers)
-    if response.status_code in [401, 403, 404]:
-        flash("Unable to access Playlist", "download_error")
-        return redirect("/download-csv")
-    elif response.status_code != 200:
-        flash("Invalid Spotify Playlist URL", "download_error")
-        return redirect("/download-csv")
-    
-    response = response.json()
-
-    songs.extend(response.get("items", []))
-    while (response["next"]):
-        response = requests.get(response["next"], headers=headers)
-        if response.status_code != 200:
-            flash("Something went wrong. Please try again.", "download_error")
-            return redirect("/download-csv")
-    
-        response = response.json()
-        songs.extend(response.get("items", []))
-
-    return download_playlist(songs)
-
-
 @app.route("/analyze-playlist")
 def analyze_playlist():
     message = get_flashed_messages(category_filter="analyze_error")
@@ -363,7 +379,7 @@ def analyze_playlist():
         "offset": 0
     }
     headers = {
-        "Authorization": f"Bearer {session["access_token"]}"
+        "Authorization": f"Bearer {session['access_token']}"
     }
     response = requests.get(config.USER_PLAYLISTS, params=parameters, headers=headers)
     if response.status_code != 200:
@@ -419,12 +435,14 @@ def analyzed():
     if playlist_details.status_code in [401, 403, 404]:
         flash("Unable to access Playlist", "analyze_error")
         return redirect("/analyze-playlist")
-    if playlist_details.status_code != 200:
+    elif playlist_details.status_code != 200:
         flash("Invalid Spotify Playlist URL", "analyze_error")
         return redirect("/analyze-playlist")
     
     playlist_details = playlist_details.json()
-    playlist_cover = playlist_details["images"][0].get("url")
+    playlist_cover = playlist_details.get("images")
+    if playlist_cover:
+        playlist_cover = playlist_cover[0].get("url")
     playlist_title = playlist_details.get("name")
 
     response = requests.get(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", params=parameters, headers=headers)
@@ -506,3 +524,122 @@ def analyzed():
     popularity = round(sum(popularity) / len(popularity))
 
     return render_template("analyzed.html", playlist_cover=playlist_cover, playlist_title=playlist_title, artist_data=artist_data, decades=decades, popularity=popularity)
+
+
+@app.route("/summary")
+def summary():
+    if "access_token" not in session:
+        return render_template("summary.html", heading="To View Your Profile Summary")
+    
+    time_period = request.args.get("time-period", "short_term")
+    if time_period not in ["short_term", "medium_term", "long_term"]:
+        time_period = "short_term"
+    
+    refresh_token()
+    parameters = {
+        "time_range": time_period,
+        "limit": 10,
+    }
+    headers= {
+        "Authorization": f"Bearer {session['access_token']}"
+    }
+
+    profile = requests.get("https://api.spotify.com/v1/me", headers=headers)
+    if profile.status_code != 200:
+        session.clear()
+        return redirect("/error")
+    
+    profile = profile.json()
+    name = profile.get("display_name") or profile.get("email")
+    profile_pic = profile.get("images")
+
+    artists = requests.get("https://api.spotify.com/v1/me/top/artists", params=parameters, headers=headers)
+    tracks = requests.get("https://api.spotify.com/v1/me/top/tracks", params=parameters, headers=headers)
+    if artists.status_code != 200 or tracks.status_code != 200:
+        session.clear()
+        return redirect("/error")
+    
+    artists = artists.json()
+    tracks = tracks.json()
+    
+    return render_template("summary.html", name=name, profile_pic=profile_pic, artists=artists, tracks=tracks, time_period=time_period, ms_to_min=ms_to_min)
+
+
+@app.route("/top-tracks")
+def top_tracks():
+    if "access_token" not in session:
+        return render_template("top-tracks.html", heading="To View Your Top Tracks")
+    
+    time_period = request.args.get("time-period", "short_term")
+    if time_period not in ["short_term", "medium_term", "long_term"]:
+        time_period = "short_term"
+
+    page_number = request.args.get("page", 1)
+    try:
+        page_number = int(page_number)
+    except ValueError:
+        page_number = 1
+    per_page = 50
+
+    refresh_token()
+    parameters = {
+        "time_range": time_period,
+        "limit": per_page,
+        "offset": (page_number - 1) * per_page,
+    }
+    headers= {
+        "Authorization": f"Bearer {session['access_token']}"
+    }
+    
+    tracks = requests.get("https://api.spotify.com/v1/me/top/tracks", params=parameters, headers=headers)
+    if tracks.status_code != 200:
+        session.clear()
+        return redirect("/error")
+    
+    tracks = tracks.json()
+
+    total_pages = ceil(tracks["total"] / per_page)
+    if (page_number > total_pages and total_pages != 0) or page_number <= 0:
+        return redirect("/not-found")
+    
+    return render_template("top-tracks.html", tracks=tracks, time_period=time_period, page_number=page_number, total_pages=total_pages, ms_to_min=ms_to_min, min=min, max=max)
+
+
+@app.route("/top-artists")
+def top_artists():
+    if "access_token" not in session:
+        return render_template("top-artists.html", heading="To View Your Top Artists")
+    
+    time_period = request.args.get("time-period", "short_term")
+    if time_period not in ["short_term", "medium_term", "long_term"]:
+        time_period = "short_term"
+
+    page_number = request.args.get("page", 1)
+    try:
+        page_number = int(page_number)
+    except ValueError:
+        page_number = 1
+    per_page = 15
+
+    refresh_token()
+    parameters = {
+        "time_range": time_period,
+        "limit": per_page,
+        "offset": (page_number - 1) * per_page,
+    }
+    headers= {
+        "Authorization": f"Bearer {session['access_token']}"
+    }
+    
+    artists = requests.get("https://api.spotify.com/v1/me/top/artists", params=parameters, headers=headers)
+    if artists.status_code != 200:
+        session.clear()
+        return redirect("/error")
+    
+    artists = artists.json()
+
+    total_pages = ceil(artists["total"] / per_page)
+    if (page_number > total_pages and total_pages != 0) or page_number <= 0:
+        return redirect("/not-found")
+    
+    return render_template("top-artists.html", artists=artists, time_period=time_period, page_number=page_number, total_pages=total_pages, min=min, max=max)

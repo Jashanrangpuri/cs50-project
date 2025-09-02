@@ -28,6 +28,8 @@
             <div class="d-flex m-4">
                 <a href="/login" class="login-button">Login with <img class="login-image" src="../static/Spotify-logo-big.png" /></a>
             </div>
+            {% elif not playlists %}
+            <h4 style="margin-top: 4rem; text-align:center;">No Playlists associated with this account</h4>
             {% else %}
             <div class="w-75 d-flex mx-auto my-2 overflow-auto playlist-table">
                 <table class="table table-sm table-dark table-striped table-bordered text-center">

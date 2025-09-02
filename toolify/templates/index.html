@@ -7,6 +7,59 @@
         {% if "access_token" not in session %}
             {% include "login-section.html" %}
         {% endif %}
-        <section class="feature-cards"></section>
+        <section class="feature-cards">
+            <div class="features my-5">
+                <div class="card border-warning" style="width: 25rem; height: 13rem;">
+                    <div class="card-header text-bg-warning">
+                        Backup
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Backup your Playlists as csv</h5>
+                        <p class="card-text">Login with your Spotify account to download your playlists as csv</p>
+                        <a href="/backup" class="btn btn-primary">Visit</a>
+                    </div>
+                </div>
+                <div class="card border-info" style="width: 25rem; height: 13rem;">
+                    <div class="card-header text-bg-info">
+                        Restore
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Restore Playlists from Backup</h5>
+                        <p class="card-text">Login with your Spotify account and upload csv file to Restore Playlist</p>
+                        <a href="/restore" class="btn btn-primary">Visit</a>
+                    </div>
+                </div>
+                <div class="card border-danger" style="width: 25rem; height: 13rem;">
+                    <div class="card-header text-bg-danger">
+                        Analyze Playlist
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Analyze Spotify Playlist</h5>
+                        <p class="card-text">Analyze your Spotify Playlists or enter Playlist url.</p>
+                        <a href="/analyze-playlist" class="btn btn-primary">Visit</a>
+                    </div>
+                </div>
+                <div class="card border-success" style="width: 25rem; height: 13rem;">
+                    <div class="card-header text-bg-success">
+                        Top Tracks
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Tracks Summary</h5>
+                        <p class="card-text">Login with Spotify to view your top tracks this month or year</p>
+                        <a href="/top-tracks" class="btn btn-primary">Visit</a>
+                    </div>
+                </div>
+                <div class="card border-primary" style="width: 25rem; height: 13rem;">
+                    <div class="card-header text-bg-primary">
+                        Top Artists
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Artists Summary</h5>
+                        <p class="card-text">Login with Spotify to view your top artists over last year</p>
+                        <a href="/top-artists" class="btn btn-primary">Visit</a>
+                    </div>
+                </div>
+            </div>
+        </section>
     </article>
 {% endblock %}

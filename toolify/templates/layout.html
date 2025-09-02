@@ -25,11 +25,13 @@
                     </button>
                     <div class="collapse navbar-collapse" id="navbarScroll">
                         <ul class="navbar-nav ms-auto my-2 my-lg-0 navbar-nav-scroll">
-                            <li class="nav-item">
-                                <a class="nav-link" aria-current="page" href="#">Home</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#">Link</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"> USER </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="/summary">Summary</a></li>
+                                    <li><a class="dropdown-item" href="/top-tracks">Top Tracks</a></li>
+                                    <li><a class="dropdown-item" href="/top-artists">Top artists</a></li>
+                                </ul>
                             </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"> PLAYLIST TOOLS </a>
@@ -43,6 +45,10 @@
                             {% if "access_token" not in session %}
                             <li>
                                 <a class="nav-link active" href="/login">LOGIN</a>
+                            </li>
+                            {% else %}
+                            <li>
+                                <a class="nav-link active" href="/logout">LOGOUT</a>
                             </li>
                             {% endif %}
                         </ul>

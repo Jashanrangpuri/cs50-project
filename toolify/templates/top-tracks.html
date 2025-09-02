@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{% block title %} Top Tracks {% endblock %}
+
+{% block main %}
+    {% if "access_token" not in session %}
+        {% include "login-section.html" %}
+    {% else %}
+    <section class="summary mt-5 pt-5">
+        <form action="/top-tracks" method="get">
+            <select class="form-select" style="width: 20rem; margin: 2rem auto 4rem auto;" aria-label="Time period" id="time-period" name="time-period" onchange="this.form.submit()">
+                <option {{ "selected" if time_period == "short_term" else "" }} value="short_term">Monthly</option>
+                <option {{ "selected" if time_period == "medium_term" else "" }} value="medium_term">Quarterly</option>
+                <option {{ "selected" if time_period == "long_term" else "" }} value="long_term">Yearly</option>
+            </select>
+        </form>
+    <h3>TOP TRACKS</h3>
+        {% if tracks["total"] == 0 %}
+        <h6 class="mx-auto w-50 text-center mb-5">We weren't able to find enough listening data in your Spotify account just yet. Please continue using the service and attempt again later</h6>
+        {% else %}
+        <div class="container-sm table-responsive">
+            <table class="table table-sm table-dark table-hover text-center">
+                <thead class="align-middle">
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Artist</th>
+                        <th scope="col">Album</th>
+                        <th scope="col">Duration</th>
+                        <th scope="col">Listen on Spotify</th>
+                    </tr>
+                </thead>
+                <tbody class="table-group-divider table-light align-middle">
+                    {% for track in tracks['items'] %}
+                    <tr>
+                        <td>{{ track['name'] }}</td>
+                        <td>{{ track['artists'][0]['name'] }}</td>
+                        <td>{{ track['album']['name'] }}</td>
+                        <td>{{ ms_to_min(track['duration_ms']) }}</td>
+                        <td>
+                            <a href="{{ track['external_urls']['spotify'] }}" class="btn btn-success mx-auto">
+                                <img src="../static/Spotify-logo-small.png" alt="View on spotify" height="20" width="20">
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </section>
+    <section class="pages" aria-label="Page navigation example">
+        {% if total_pages > 1 %}
+        <ul class="pagination">
+            {% if page_number > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="/top-tracks?time-period={{ time_period }}&page={{ page_number - 1 }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+
+            {% if total_pages < 7 %}
+                {% for i in range(1, total_pages + 1) %} 
+                    {% if i == page_number %}
+                    <li class="page-item" aria-current="page"><a class="page-link bg-dark-subtle" href="/top-tracks?time-period={{ time_period }}&page={{ i }}">{{ i }}</a></li>
+                    {% else %}
+                    <li class="page-item"><a class="page-link" href="/top-tracks?time-period={{ time_period }}&page={{ i }}">{{ i }}</a></li>
+                    {% endif %} 
+                {% endfor %}
+            {% else %}
+                {% if page_number > 2 %}
+                    <li class="page-item"><a class="page-link" href="/top-tracks?time-period={{ time_period }}&page=1">1</a></li>
+                    {% if page_number > 3 %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endif %}
+
+                {% for i in range(max(1, page_number - 1), min(total_pages, page_number + 1) + 1) %}
+                    {% if i == page_number %}
+                        <li class="page-item" aria-current="page"><a class="page-link bg-dark-subtle" href="#">{{ i }}</a></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="/top-tracks?time-period={{ time_period }}&page={{ i }}">{{ i }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_number < total_pages - 1 %}
+                    {% if page_number < total_pages - 2 %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                        <li class="page-item"><a class="page-link" href="/top-tracks?time-period={{ time_period }}&page={{ total_pages }}">{{ total_pages }}</a></li>
+                {% endif %}
+            {% endif %}
+
+            {% if total_pages > page_number %}
+                <li class="page-item">
+                    <a class="page-link" href="/top-tracks?time-period={{ time_period }}&page={{ page_number + 1 }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+        {% endif %}
+    </section>
+    {% endif %}
+{% endblock %}
