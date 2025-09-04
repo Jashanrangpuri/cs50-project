@@ -26,7 +26,7 @@
         {% if artists["total"] == 0 %}
         <h6 class="mx-auto w-50 text-center mb-5">We weren't able to find enough listening data in your Spotify account just yet. Please continue using the service and attempt again later</h6>
         {% else %}
-        <div class="top-artists mx-5 text-center">
+        <div class="top-artists mx-5 text-center" style="margin-bottom: 2rem !important;">
         {% for artist in artists["items"] %}
             <div class="card" style="width: 200px;">
                 {% if "images" in artist and artist["images"] %}
@@ -40,7 +40,9 @@
             </div>
         {% endfor %}
         </div>
-        {% endif %}    
+        <a href="/top-artists" role="button" class="btn btn-dark d-block mx-auto w-25">View more</a>
+        {% endif %}   
+        <div style="margin-top: 10rem;">
         <h3>TOP TRACKS</h3>
         {% if tracks["total"] == 0 %}
         <h6 class="mx-auto w-50 text-center mb-5">We weren't able to find enough listening data in your Spotify account just yet. Please continue using the service and attempt again later</h6>
@@ -73,7 +75,9 @@
                 </tbody>
             </table>
         </div>
+        <a href="/top-tracks" role="button" class="btn btn-dark d-block mx-auto my-3 w-25">View more</a>
         {% endif %}
+        </div>
     </section>
     {% endif %}
 {% endblock %}

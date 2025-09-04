@@ -57,7 +57,7 @@ def login():
         "redirect_uri": config.REDIRECT_URI,
         "state": config.STATE,
         "scope": "playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public user-top-read user-read-recently-played user-library-modify user-library-read user-read-email user-read-private",
-        "show_dialog": "true",
+        "show_dialog": "false",
     }
 
     AUTH_URL = "https://accounts.spotify.com/authorize?" + urllib.parse.urlencode(parameters)
